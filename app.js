@@ -40,19 +40,7 @@ app.use(helmet());
 // CORS configuration
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-
-      if (process.env.NODE_ENV === 'development' && /^http:\/\/localhost:\d+$/.test(origin)) {
-        return callback(null, true);
-      } else if ([
-        process.env.FRONTEND_URL
-      ].filter(Boolean).indexOf(origin) !== -1) {
-        return callback(null, true);
-      } else {
-        callback(null, false);
-      }
-    },
+    origin: true, // Allow all origins for testing/production ease
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Nonce', 'X-Timestamp']

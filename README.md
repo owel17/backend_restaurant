@@ -13,41 +13,197 @@ The engine for the POS SO management system. Built with Node.js and Express, des
 - **Emailing**: Nodemailer (SMTP)
 - **Payments**: Midtrans API Integration
 
-## 📂 Core Structure
+---
 
-- `/controllers`: Request logic (Auth, Orders, Menu, etc.)
-- `/models`: Database schemas for PostgreSQL & MongoDB.
-- `/routes`: API endpoint definitions.
-- `/services`: Third-party integrations (Midtrans, Email).
-- `/middleware`: Auth verification, error handling, and security.
+## 🏗 System Architecture & Design
 
-## ⚙️ Configuration (.env)
+### 1. Use Case Diagram
+Diagram ini menggambarkan siapa saja pengguna sistem (Aktor) dan apa saja fungsi utama yang bisa mereka lakukan.
 
-Ensure these variables are set in your `.env` file:
+```mermaid
+useCaseDiagram
+    actor "Customer" as C
+    actor "Staff (Waiter/Chef/Cashier)" as S
+    actor "Owner" as O
 
-```env
-APP_NAME=POS SO
-DATABASE_URL=postgresql://your_db_url
-JWT_SECRET=your_jwt_secret
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_gmail_app_password
+    package "Restaurant POS System" {
+        usecase "Scan QR Table" as UC1
+        usecase "View Digital Menu" as UC2
+        usecase "Place Order" as UC3
+        usecase "Track Order Status" as UC4
+        
+        usecase "Manage Orders" as UC5
+        usecase "Process Payment" as UC6
+        usecase "Update Menu Availability" as UC7
+        
+        usecase "Manage Staff Account" as UC8
+        usecase "View Sales Reports" as UC9
+        usecase "Manage Menu Content" as UC10
+    }
+
+    C --> UC1
+    C --> UC2
+    C --> UC3
+    C --> UC4
+
+    S --> UC5
+    S --> UC6
+    S --> UC7
+
+    O --> UC8
+    O --> UC9
+    O --> UC10
+    O --> UC5
 ```
 
-## 🚀 Getting Started
+**Penjelasan:**
+- **Customer**: Berinteraksi secara mandiri melalui mobile device (Scan QR). Fokus pada reservasi meja dan pemesanan.
+- **Staff**: Mengelola siklus hidup pesanan (Kitchen/Service) dan pembayaran.
+- **Owner**: Memegang kontrol penuh atas inventaris (Menu), SDM (Staff), dan analitik (Reports).
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Run in development mode:
-   ```bash
-   npm run dev
-   ```
-3. Production:
-   ```bash
-   npm start
-   ```
+---
+
+### 2. System Flowmap (Data Flow)
+Diagram ini menjelaskan bagaimana data berpindah antar komponen teknis.
+
+```mermaid
+graph TD
+    subgraph "Frontend (Vercel)"
+        UI[React Mobile/Web UI]
+        State[Auth & Cart State]
+    end
+
+    subgraph "Backend (Railway)"
+        API[Node.js Express API]
+        Auth[JWT Middleware]
+        Logic[Business Logic]
+    end
+
+    subgraph "Database (Railway)"
+        DB[(PostgreSQL)]
+    end
+
+    UI <-->|HTTPS / JSON| API
+    API <--> Logic
+    Logic <--> Auth
+    Logic <--> DB
+```
+
+**Penjelasan:**
+1. **Frontend** mengirimkan request JSON melalui koneksi HTTPS yang aman.
+2. **Backend** memverifikasi identitas pengguna menggunakan **JWT Middleware**.
+3. **Business Logic** memproses data (misal: menghitung total harga, mengecek stok).
+4. **PostgreSQL** menyimpan semua data transaksi secara permanen dan konsisten.
+
+---
+
+### 3. Entity Relationship Diagram (ERD)
+Struktur database dan hubungan antar tabel data.
+
+```mermaid
+erDiagram
+    users ||--o{ Orders : "creates"
+    Menus ||--o{ OrderItems : "contains"
+    Orders ||--|{ OrderItems : "has"
+    Orders ||--o| Payments : "has"
+    Orders ||--o{ SalesStats : "aggregates"
+
+    users {
+        bigint id PK
+        string name
+        string email UK
+        string password_hash
+        string role "owner, staff"
+    }
+
+    Menus {
+        bigint id PK
+        string name
+        decimal price
+        string category
+        string status "available, unavailable"
+    }
+
+    Orders {
+        bigint id PK
+        string tableNumber
+        jsonb items "Array of menu items"
+        decimal totalAmount
+        string status "pending, completed, etc"
+    }
+
+    Payments {
+        bigint id PK
+        bigint orderId FK
+        decimal amount
+        string status "success, failed"
+    }
+
+    SalesStats {
+        bigint id PK
+        date date UK
+        int totalOrders
+        decimal totalRevenue
+    }
+```
+
+**Penjelasan Relasi:**
+- **Orders.items (JSONB)**: Ini adalah fitur unggulan dimana detail item pesanan disimpan dalam satu kolom JSON, sehingga query lebih cepat tanpa banyak join tabel.
+- **Payments**: Terhubung langsung ke Order ID (`One-to-One`).
+- **SalesStats**: Tabel khusus untuk mempercepat loading grafik dashboard owner dengan menyimpan Ringkasan harian.
+
+---
+
+### 4. Role Flowcharts
+
+#### **Customer Flow (Pemesanan Mandiri)**
+```mermaid
+flowchart TD
+    Start([Mulai]) --> Scan[Scan QR di Meja]
+    Scan --> Browse[Lihat Menu Digital]
+    Browse --> Cart[Pilih Menu & Keranjang]
+    Cart --> Order[Checkout / Buat Pesanan]
+    Order --> Wait[Tunggu Konfirmasi Staff]
+    Wait --> Serve[Pesanan Diantar]
+    Serve --> Finish([Selesai])
+```
+
+#### **Staff Flow (Manajemen Pesanan)**
+```mermaid
+flowchart TD
+    Login([Login Staff]) --> Dashboard[Dashboard Live Orders]
+    Dashboard --> New{Ada Pesanan Baru?}
+    New -->|Ya| Accept[Terima & Update ke 'Preparing']
+    Accept --> Cook[Chef Memasak]
+    Cook --> Ready[Update ke 'Ready']
+    Ready --> Deliver[Antar ke Meja]
+    Deliver --> Pay[Proses Pembayaran]
+    Pay --> Complete[Status 'Completed']
+```
+
+#### **Owner Flow (Kontrol & Analitik)**
+```mermaid
+flowchart TD
+    Login([Login Owner]) --> Dash[Admin Dashboard]
+    Dash --> Action{Pilih Aksi}
+    Action -->|Menu| ManageMenu[Manage Katalog Menu]
+    Action -->|User| ManageStaff[Kelola Staff & Role]
+    Action -->|Report| ViewSales[Dashboard Grafik Penjualan]
+```
+
+---
+
+## 📂 Project Directory
+- `/controllers`: Logika endpoint (Auth, Orders, Menu).
+- `/models`: Definisi skema database PostgreSQL.
+- `/routes`: Pintu masuk API.
+- `/services`: Integrasi pihak ketiga (Midtrans, Email).
+- `/middleware`: Keamanan & Verifikasi Auth.
+
+## ⚙️ Setup Lokal
+1. `npm install`
+2. Konfigurasi `.env` sesuai `.env.example`.
+3. `npm run dev`
 
 ---
 Built with ❤️ for POS SO.

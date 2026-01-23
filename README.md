@@ -378,6 +378,7 @@ sequenceDiagram
 - `/routes`: Pintu masuk API.
 - `/services`: Integrasi pihak ketiga (Midtrans, Email).
 - `/middleware`: Keamanan & Verifikasi Auth.
+- `BLACKBOX_TESTING.md`: Laporan hasil pengujian fungsional sistem.
 
 ## ⚙️ Setup Lokal
 1. `npm install`

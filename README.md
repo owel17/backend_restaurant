@@ -193,6 +193,36 @@ flowchart TD
 
 ---
 
+### 5. Sequence Diagram: Scan QR & Lihat Menu
+Diagram ini mendetailkan interaksi langkah-demi-langkah antara Customer, Browser/Frontend, Backend, dan Database saat proses inisiasi awal.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant Frontend as React APP (Vercel)
+    participant Backend as Express API (Railway)
+    participant DB as PostgreSQL
+
+    Customer->>Frontend: Scan QR Code di Meja
+    Note right of Customer: URL: /menu?table=5
+    Frontend->>Frontend: Parsing Parameter Table Number
+    Frontend->>Backend: GET /api/menu (Request Data Menu)
+    Backend->>DB: SELECT * FROM "Menus" WHERE status = 'available'
+    DB-->>Backend: Data Menu Items
+    Backend-->>Frontend: JSON Response (Menu Data)
+    Frontend->>Frontend: Render Menu UI
+    Frontend-->>Customer: Tampilan Menu Digital & Nomor Meja
+```
+
+**Penjelasan:**
+1. **Inisiasi**: Pengguna melakukan aksi fisik (scanning) yang mengarahkan browser ke URL spesifik meja.
+2. **Parsing**: Frontend mendeteksi nomor meja dari URL agar pesanan nanti otomatis tercatat di meja yang benar.
+3. **Data Fetching**: Frontend meminta daftar menu terbaru yang tersedia dari server.
+4. **Respon**: Data dikirim dalam format JSON dan ditampilkan ke pengguna dalam UI yang interaktif.
+
+---
+
 ## 📂 Project Directory
 - `/controllers`: Logika endpoint (Auth, Orders, Menu).
 - `/models`: Definisi skema database PostgreSQL.

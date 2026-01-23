@@ -58,13 +58,13 @@ graph LR
     O --> UC5
 
     %% Include & Extend Relationships
-    UC5 -. "<<include>>" .-> UC_Login
-    UC8 -. "<<include>>" .-> UC_Login
-    UC9 -. "<<include>>" .-> UC_Login
-    UC10 -. "<<include>>" .-> UC_Login
+    UC5 -. "&laquo;include&raquo;" .-> UC_Login
+    UC8 -. "&laquo;include&raquo;" .-> UC_Login
+    UC9 -. "&laquo;include&raquo;" .-> UC_Login
+    UC10 -. "&laquo;include&raquo;" .-> UC_Login
     
-    UC6 -. "<<extend>>" .-> UC_Print
-    UC3 -. "<<include>>" .-> UC2
+    UC6 -. "&laquo;extend&raquo;" .-> UC_Print
+    UC3 -. "&laquo;include&raquo;" .-> UC2
 ```
 
 **Penjelasan Relasi:**

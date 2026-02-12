@@ -170,6 +170,8 @@ graph LR
     UC2 -.->|include| UC_Login
     UC4 -.->|include| UC_Login
 ```
+**Penjelasan Diagram Use Case:**
+Diagram di atas memperlihatkan 3 aktor yang terlibat: Customer, Staff, dan Owner. Customer memiliki interaksi langsung dengan Use Case Scan QR dan Pembayaran. Staff berfokus pada Pengelolaan Pesanan di dapur. Owner memiliki akses penuh untuk melihat Laporan dan Manajemen sistem. Relasi *Include* pada Login menandakan bahwa fitur Manajemen wajib didahului proses Login.
 
 #### 3.3.2 Activity Diagram (Alur Pesanan)
 Menggambarkan alur kerja pemesanan dari sisi Customer hingga Dapur.
@@ -190,6 +192,8 @@ journey
       Siapkan Makanan: 3: Staff
       Sajikan (Update Status): 5: Staff
 ```
+**Penjelasan Activity Diagram:**
+Alur dimulai saat Customer memindai QR Code. Sistem kemudian memvalidasi pesanan dan menyimpannya ke database. Secara otomatis, sistem mengirim notifikasi *real-time* ke dashboard Staff di dapur untuk segera diproses hingga siap disajikan.
 
 #### 3.3.3 Sequence Diagram (Proses Checkout & API)
 Menggambarkan detail teknis pertukaran pesan antar objek saat customer melakukan checkout.
@@ -216,6 +220,8 @@ sequenceDiagram
         B-->>C: Response (Order Created)
     end
 ```
+**Penjelasan Sequence Diagram:**
+Diagram ini merinci pertukaran pesan antar objek. UI Customer mengirim request ke Backend. Backend memvalidasi dan meneruskan request ke Payment Gateway (Midtrans) jika pembayaran digital. Setelah pembayaran sukses, Midtrans mengirim *Webhook* balik ke Backend untuk mengupdate status di Database.
 
 #### 3.3.4 Class Diagram
 Menggambarkan struktur kelas/tabel dan relasinya dalam kode program.
@@ -247,6 +253,8 @@ classDiagram
     User "1" --> "*" Order : Processes
     Order "*" --> "*" Menu : Contains
 ```
+**Penjelasan Class Diagram:**
+Sistem terdiri dari 3 kelas utama: User (Pengguna), Order (Pesanan), dan Menu. Satu User (Staff) dapat memproses banyak Order. Satu Order dapat berisi banyak item Menu. Metode seperti `createOrder()` dan `toggleAvailability()` didefinisikan di sini.
 
 ### 3.4 Perancangan Database (ERD)
 Skema relasional database PostgreSQL untuk menyimpan data secara persisten.
@@ -257,11 +265,29 @@ erDiagram
     Orders ||--o| Payments : "processed by"
     Categories ||--o{ Menus : "classifies"
     
-    users { bigint id, string role, string email }
-    Orders { bigint id, jsonb items, string status }
-    Menus { bigint id, string name, decimal price }
-    Payments { bigint id, string type, string status }
+    users { 
+        bigint id 
+        string role 
+        string email 
+    }
+    Orders { 
+        bigint id 
+        jsonb items 
+        string status 
+    }
+    Menus { 
+        bigint id 
+        string name 
+        decimal price 
+    }
+    Payments { 
+        bigint id 
+        string type 
+        string status 
+    }
 ```
+**Penjelasan ERD:**
+Tabel `users` memiliki relasi *One-to-Many* ke `Orders` (satu staff menangani banyak pesanan). Tabel `Orders` memiliki relasi *One-to-One* ke `Payments` (satu pesanan memiliki satu data pembayaran unik). Tabel `Menus` dikelompokkan berdasarkan `Categories`.
 
 ---
 
@@ -343,17 +369,17 @@ Hasil implementasi desain antarmuka pengguna sesuai rancangan:
 #### A. Halaman Customer (Menu)
 Tampilan mobile-first yang responsif memudahkan pelanggan memilih menu.
 
-![UI Customer][def3]
+![UI Customer](assets/laporan_rpl/ui_customer_menu.png)
 
 #### B. Halaman Staff (Dashboard)
 Tampilan Kanban Board untuk manajemen status pesanan efisien di dapur.
 
-![UI Staff][def2]
+![UI Staff](assets/laporan_rpl/ui_staff_dashboard.png)
 
 #### C. Halaman Owner (Laporan)
 Grafik interaktif untuk analisis bisnis.
 
-![UI Owner][def]
+![UI Owner](assets/laporan_rpl/ui_owner_analytics.png)
 
 ---
 
@@ -385,6 +411,8 @@ graph TD
     9 --> 10
     10 --> 11((End))
 ```
+**Penjelasan Flowgraph:**
+Grafik di atas memetakan logika percabangan code. Node 1 adalah titik awal (Start), Node 3 dan 5 adalah titik keputusan (Decision Points), dan Node 11 adalah akhir proses (End). Alur ini memastikan bahwa setiap input, baik valid maupun invalid, memiliki jalur penyelesaian yang jelas.
 
 #### 5.1.2 Perhitungan Kompleksitas (V(G))
 *   **V(G) = E - N + 2**
@@ -428,9 +456,3 @@ Untuk pengembangan selanjutnya, disarankan:
 1.  Menambahkan fitur **Inventory Management** yang memotong stok bahan baku otomatis saat menu terjual.
 2.  Mengembangkan aplikasi **Mobile Native (Android/iOS)** untuk notifikasi *real-time* ke HP owner.
 3.  Menambahkan fitur **AI Recommendation** untuk menyarankan menu tambahan ke pelanggan berdasarkan riwayat pesanan.
-
----
-
-[def]: assets/laporan_rpl/ui_owner_analytics.png
-[def2]: assets/laporan_rpl/ui_staff_dashboard.png
-[def3]: assets/laporan_rpl/ui_customer_menu.png

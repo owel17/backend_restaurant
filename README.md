@@ -448,6 +448,7 @@ sequenceDiagram
 - `/services`: Integrasi pihak ketiga (Midtrans, Email).
 - `/middleware`: Keamanan & Verifikasi Auth.
 - `BLACKBOX_TESTING.md`: Laporan hasil pengujian fungsional sistem.
+- `LAPORAN_PRAKTIKUM_RPL.md`: Dokumentasi lengkap analisis sistem, flowgraph, & white-box testing.
 
 ## ⚙️ Setup Lokal
 1. `npm install`

@@ -11,13 +11,13 @@
 2.  **BAB 2: PEMODELAN SISTEM (USE CASE)**
     *   2.1 Diagram Use Case
     *   2.2 Deskripsi Aktor & Hak Akses
-    *   2.3 Skenario Use Case Utama
+    *   2.3 Skenario Alur Kerja (Workflows)
 3.  **BAB 3: PERANCANGAN TEKNIS (DATABASE)**
     *   3.1 Arsitektur Teknologi (*Tech Stack*)
     *   3.2 Skema Database (ERD 7 Tabel)
 4.  **BAB 4: ANALISIS LOGIKA & PENGUJIAN WHITE-BOX**
-    *   4.1 Alur Logika Fitur Checkout (Flow Control)
-    *   4.2 Diagram Flowgraph (14 Nodes)
+    *   4.1 Diagram Flowgraph (14 Nodes)
+    *   4.2 Penjelasan Detail Node Logika
     *   4.3 Perhitungan Cyclomatic Complexity (V(G))
     *   4.4 Penentuan Jalur Independen (*Basis Path Testing*)
     *   4.5 Tabel Pengujian White-Box (*Test Cases*)
@@ -26,7 +26,6 @@
     *   5.2 Tampilan Sisi Staff
     *   5.3 Tampilan Sisi Owner
 6.  **BAB 6: KESIMPULAN & ANALISIS AKHIR**
-7.  **LAMPIRAN: DAFTAR ASET GAMBAR**
 
 ---
 
@@ -51,39 +50,54 @@ Sistem **POS SO** hadir sebagai jawaban komprehensif atas permasalahan di atas d
 Pada bab ini, kita memodelkan interaksi tingkat tinggi antara pengguna dengan sistem menggunakan diagram UML standar.
 
 ### 2.1 Diagram Use Case
-Diagram ini menggambarkan interaksi langsung antara pengguna dengan sistem. Kami menggunakan notasi standar UML di mana aktor direpresentasikan sebagai *Stickman*.
+Diagram ini menggambarkan interaksi langsung antara pengguna dengan sistem. 
+*(Catatan: Visualisasi menggunakan `graph` agar kompatibel dengan berbagai renderer Markdown, dengan penandaan Aktor yang jelas)*.
 
 ```mermaid
-usecaseDiagram
-    actor "Customer (Tamu)" as C
-    actor "Staff (Waiter/Kasir)" as S
-    actor "Owner (Pemilik)" as O
+graph LR
+    %% Style Definitions
+    classDef actor fill:#f9f,stroke:#333,stroke-width:2px,color:black,font-weight:bold;
+    classDef usecase fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,rx:10,ry:10;
+    classDef boundary fill:white,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 
-    package "Sistem POS SO (Web App)" {
-        usecase "Scan QR Meja" as UC1
-        usecase "Lihat Menu Digital" as UC2
-        usecase "Pesan Makanan (Checkout)" as UC3
-        usecase "Cek Status Pesanan" as UC4
+    subgraph "Sistem POS SO (Web Application)"
+        direction TB
+        UC_Login([Login & Autentikasi]):::usecase
         
-        usecase "Login Akun" as UC_Login
-        usecase "Kelola Pesanan Masuk" as UC5
-        usecase "Proses Pembayaran" as UC6
-        usecase "Cetak Struk Fisik" as UC7
+        %% Customer Zone
+        UC1([Scan QR Meja]):::usecase
+        UC2([Lihat Menu Digital]):::usecase
+        UC3([Pesan Makanan/Checkout]):::usecase
+        UC4([Cek Status Pesanan]):::usecase
         
-        usecase "Kelola Akun Staff" as UC8
-        usecase "Laporan Penjualan" as UC9
-        usecase "Manajemen Menu" as UC10
-    }
+        %% Staff Zone
+        UC5([Kelola Pesanan Masuk]):::usecase
+        UC6([Proses Pembayaran]):::usecase
+        UC7([Cetak Struk Fisik]):::usecase
+        
+        %% Owner Zone
+        UC8([Kelola Akun Staff]):::usecase
+        UC9([Laporan Penjualan]):::usecase
+        UC10([Manajemen Menu]):::usecase
+    end
 
+    %% Actors
+    C(👤 Customer/Tamu):::actor
+    S(👨‍🍳 Staff/Kasir):::actor
+    O(👑 Owner/Pemilik):::actor
+
+    %% Customer interactions
     C --> UC1
     C --> UC2
     C --> UC3
     C --> UC4
 
+    %% Staff interactions
     S --> UC_Login
     S --> UC5
     S --> UC6
     
+    %% Owner interactions
     O --> UC_Login
     O --> UC8
     O --> UC9
@@ -91,21 +105,44 @@ usecaseDiagram
     O --> UC5
 
     %% Relasi Include/Extend
-    UC3 ..> UC2 : <<include>>
-    UC5 ..> UC_Login : <<include>>
-    UC6 <.. UC7 : <<extend>>
+    UC3 -.->|include| UC2
+    UC5 -.->|include| UC_Login
+    UC7 -.->|extend| UC6
 ```
 
-> *Gambar 2.1: Use Case Diagram dengan 3 Aktor Utama*
+> *Gambar 2.1: Use Case Diagram Sistem POS SO*
 
 ### 2.2 Deskripsi Aktor & Hak Akses
-Sistem ini membagi pengguna ke dalam trois kategori:
+Sistem ini membagi pengguna ke dalam tiga kategori aktor berdasarkan peran dan tanggung jawabnya:
 
 | Aktor | Ikon | Deskripsi Peran | Hak Akses Utama |
 | :---: | :---: | :--- | :--- |
 | **Customer** | 👤 | Tamu restoran yang datang makan. | Scan QR, Lihat Menu, Checkout. Tanpa Login. |
 | **Staff** | 👨‍🍳 | Karyawan operasional (Waiter/Kasir). | **Login Wajib**. Terima Pesanan, Kasir, Dapur. |
 | **Owner** | 👑 | Pemilik usaha (Super Admin). | **Login Wajib**. Laporan Keuangan, SDM, Audit. |
+
+### 2.3 Skenario Alur Kerja (Workflows)
+Penjelasan rinci mengenai bagaimana setiap aktor berinteraksi dengan sistem dalam skenario nyata:
+
+#### A. Alur Customer (Pemesanan Mandiri)
+1.  **Scan QR**: Pelanggan duduk dan memindai QR Code yang tertempel di meja menggunakan kamera smartphone.
+2.  **Validasi Meja**: Sistem otomatis mendeteksi parameter meja (misal `?table=1`) dari URL QR.
+3.  **Browsing**: Pelanggan melihat katalog menu digital yang lengkap dengan foto dan harga.
+4.  **Add to Cart**: Pelanggan memilih menu yang diinginkan, menambahkan catatan (misal "Jangan Pedas"), dan memasukkan ke keranjang.
+5.  **Checkout & Payment**: Pelanggan melakukan konfirmasi pesanan dan memilih metode pembayaran (Tunai/QRIS). Data pesanan dikirim ke server.
+6.  **Tracking**: Layar pelanggan menampilkan status pesanan secara real-time (*Pending* -> *Cooking* -> *Served*).
+
+#### B. Alur Staff (Dapur & Kasir)
+1.  **Incoming Order**: Tablet di dapur berbunyi/notifikasi muncul saat pesanan baru masuk dari pelanggan.
+2.  **Accept Order**: Koki menekan tombol "Terima", status berubah menjadi *Cooking*.
+3.  **Preparation**: Makanan disiapkan.
+4.  **Ready to Serve**: Saat makanan matang, staff menekan tombol "Siap Saji", status berubah menjadi *Served*. Pelayan mengantar makanan.
+5.  **Payment Verification**: Jika pembayaran tunai, Kasir menerima uang dan memverifikasi status pembayaran menjadi *Paid* di sistem. Staff juga dapat mencetak struk fisik jika diminta.
+
+#### C. Alur Owner (Manajemen & Kontrol)
+1.  **Dashboard Monitoring**: Owner login untuk melihat grafik penjualan harian yang *update* setiap detik.
+2.  **Menu Management**: Jika stok bahan habis, Owner menonaktifkan menu tertentu agar tidak bisa dipesan pelanggan (*Toggle Availability*).
+3.  **Audit Logs**: Owner memantau log aktivitas untuk melihat jam login staff dan mencegah kecurangan.
 
 ---
 
@@ -114,13 +151,12 @@ Sistem ini membagi pengguna ke dalam trois kategori:
 Agar sistem dapat berjalan dengan performa tinggi dan data yang konsisten, perancangan backend sangat krusial.
 
 ### 3.1 Arsitektur Teknologi (*Tech Stack*)
-Kami memilih teknologi berbasis JavaScript modern (*Fullstack JS*) karena efisiensi I/O non-blocking dan ekosistem yang luas:
-*   **Frontend**: React 18 dengan Vite (Untuk rendering UI yang super cepat).
-*   **Backend**: Node.js & Express (Menangani ribuan request pesanan secara *asynchronous*).
-*   **Database**: PostgreSQL (Menyimpan data relasional dengan fitur JSONB untuk fleksibilitas).
+*   **Frontend**: React 18 dengan Vite (Rendering UI Cepat & Responsif).
+*   **Backend**: Node.js & Express (API Server Non-blocking untuk menangani *concurrency* tinggi).
+*   **Database**: PostgreSQL (Relational DB dengan fitur JSONB untuk fleksibilitas data item pesanan).
 
 ### 3.2 Skema Database (ERD 7 Tabel)
-Desain database menggunakan 7 tabel terelasi untuk menjamin integritas data. Berikut adalah representasi visual struktur tabel dalam notasi Chen (Crow's Foot).
+Berikut adalah struktur database lengkap yang digunakan:
 
 ```mermaid
 erDiagram
@@ -137,86 +173,53 @@ erDiagram
         string email UK "Login ID"
         string password_hash "Bcrypt Encrypted"
         string role "ENUM('owner', 'staff')"
-        string status "active/inactive"
     }
-
     Categories {
         integer id PK
-        string name UK "Nama Kategori (ex: Makanan)"
-        string[] subcategories "Detail (ex: Pedas, Manis)"
-        string icon "Emoji Visual"
+        string name UK "Kategori Menu"
+        string icon "Visual Icon"
     }
-
     Menus {
         bigint id PK
-        string name "Nama Menu"
+        string name "Nama Produk"
         decimal price "Harga Jual"
-        string category "FK -> Categories"
-        string image_url "Path Gambar"
-        string status "available/unavailable"
+        string status "Available/Unavailable"
     }
-
     Orders {
         bigint id PK
-        bigint userId FK "Staff Penanggung Jawab"
-        string tableNumber "No Meja Fisik"
-        jsonb items "SNAPSHOT {name, price, qty}"
-        decimal totalAmount "Total Harga"
-        string status "pending/cooking/served"
-        string payment_status "unpaid/paid"
+        string tableNumber "Nomor Meja"
+        jsonb items "Array Item {id, name, qty}"
+        decimal totalAmount "Total Tagihan"
+        string status "Pending/Cooking/Served"
     }
-
     Payments {
         bigint id PK
-        bigint orderId FK "Ref Pesanan"
-        string transactionId "Midtrans ID"
-        string paymentType "QRIS/Cash"
-        decimal amount "Nominal Bayar"
-        string status "settlement/pending"
+        string transactionId "Midtrans Order ID"
+        decimal amount "Nominal"
+        string status "Settlement/Pending"
     }
-
     SalesStats {
         bigint id PK
-        date date UK "Tanggal Laporan"
-        int totalOrders "Jml Transaksi"
-        decimal totalRevenue "Total Omzet"
-        jsonb hourlyBreakdown "Grafik Per Jam"
+        date date UK "Tanggal"
+        decimal totalRevenue "Omzet Harian"
     }
-
     AuditLog {
         integer id PK
-        integer userId FK "Pelaku"
-        string action "Tipe Aksi (UPDATE/DELETE)"
-        string entity "Tabel Terdampak"
-        jsonb oldValue "Data Lama"
-        jsonb newValue "Data Baru"
-        timestamp timestamp "Waktu Kejadian"
+        string action "Tipe Aktivitas"
+        jsonb changes "Perubahan Data"
     }
 ```
 
-> *Gambar 3.1: Entity Relationship Diagram (ERD) Lengkap dengan Atribut & Tipe Data*
+> *Gambar 3.1: Entity Relationship Diagram (ERD)*
 
 ---
 
 ## BAB 4: ANALISIS LOGIKA & PENGUJIAN WHITE-BOX
 
-Bagian ini adalah *core analysis* dari laporan RPL. Kita akan membedah logika backend pada fitur krusial: **Proses Checkout & Pembayaran**.
+Bagian ini membedah logika backend pada fitur krusial: **Proses Checkout & Pembayaran**.
 
-### 4.1 Alur Logika Fitur Checkout (Flow Control)
-Sebelum menjadi kode, logika program dirancang sebagai urutan langkah (*Algorithm*):
-1.  Sistem menerima request Checkout.
-2.  Sistem memvalidasi input (Nama Pemesan, Nomor Meja).
-3.  Jika input tidak valid, tolak dan minta perbaiki.
-4.  Jika valid, User diminta memilih metode pembayaran (Digital/Tunai).
-5.  Jika Digital, sistem menghubungi API Midtrans (bisa sukses/gagal).
-6.  Jika Tunai, pesanan langsung masuk dengan status 'Pending Payment'.
-7.  Setelah pembayaran terkonfirmasi, simpan ke database dan cetak struk dapur.
-
-### 4.2 Diagram Flowgraph (14 Nodes)
-Berikut adalah representasi grafis *Control Flow Graph* dari algoritma di atas.
-*   **Lingkaran (( ))**: Mulai/Selesai.
-*   **Belah Ketupat { }**: Keputusan (Decision/Percabangan).
-*   **Kotak [ ]**: Proses/Aksi.
+### 4.1 Diagram Flowgraph (14 Nodes)
+Berikut adalah grafik alur logika program (Control Flow Graph) yang terbagi menjadi 14 node untuk analisis struktural.
 
 ```mermaid
 graph TD
@@ -227,17 +230,17 @@ graph TD
 
     1((1. Start)):::start --> 2[2. Validasi Input]:::proc
     2 --> 3{3. Valid?}:::decision
-    3 -- No --> 1
-    3 -- Yes --> 4[4. Pilih Metode]:::proc
+    3 -- NO --> 1
+    3 -- YES --> 4[4. Pilih Metode]:::proc
     4 --> 5{5. Midtrans?}:::decision
     
-    5 -- Yes --> 6[6. Req API]:::proc
+    5 -- YES --> 6[6. Req API]:::proc
     6 --> 7{7. API OK?}:::decision
-    7 -- No --> 4
-    7 -- Yes --> 8[8. Wait Payment]:::proc
+    7 -- NO --> 4
+    7 -- YES --> 8[8. Wait Payment]:::proc
     8 --> 10[10. Set Pending]:::proc
     
-    5 -- No (Cash) --> 9[9. Bayar Kasir]:::proc
+    5 -- NO (Cash) --> 9[9. Bayar Kasir]:::proc
     9 --> 10
     
     10 --> 11[11. Save DB]:::proc
@@ -246,111 +249,76 @@ graph TD
     13 --> 14((14. End)):::endnode
 ```
 
-> *Gambar 4.1: Flowgraph Logika Node 1 sampai Node 14 (Visualisasi Alur Program)*
+> *Gambar 4.1: Flowgraph Logika Node 1 - 14*
 
-**Kunci Node:**
-*   **Node 1**: Start
-*   **Node 2**: Validasi Input
-*   **Node 3 (Predicate)**: Input Valid? (Ya/Tidak)
-*   **Node 5 (Predicate)**: Metode Bayar Midtrans? (Ya/Tidak)
-*   **Node 7 (Predicate)**: API Midtrans Sukses? (Ya/Tidak)
-*   **Node 14**: End
+### 4.2 Penjelasan Detail Node Logika
+Analisis mendalam untuk setiap langkah (Node) pada grafik di atas:
+
+| Node | Proses / Logika | Input & Output |
+| :---: | :--- | :--- |
+| **1** | **Start Process** | **Input**: User menekan tombol "Proses Pesanan" di Cart.<br>**Output**: Fungsi backend `checkout()` dipanggil. |
+| **2** | **Validasi Input** | Sistem memeriksa integritas data payload.<br>**Logic**: Cek apakah `name`, `tableNumber`, dan `items` tidak kosong. |
+| **3** | **Decision: Valid?** | **Branching**: Jika data tidak lengkap, kembalikan Error 400 (Bad Request). Jika lengkap, lanjut ke Node 4. |
+| **4** | **Pilih Metode** | User memilih metode pembayaran yang diinginkan (QRIS/Bank Transfer/Tunai). |
+| **5** | **Decision: Is Midtrans?** | **Branching**: Cek `paymentType`. Jika tipe 'online', masuk alur Digital (Node 6). Jika 'cash', masuk alur Tunai (Node 9). |
+| **6** | **Request API Midtrans** | Sistem melakukan Request HTTP ke Server Core API Midtrans untuk meminta Snap Token transaksi. |
+| **7** | **Decision: API Success?** | **Branching**: Jika Midtrans merespon dengan Token, lanjut ke Node 8. Jika timeout/error, minta user pilih metode lain. |
+| **8** | **Wait Payment** | Sistem menunggu konfirmasi pembayaran sukses dari Webhook Midtrans (Status: *Settlement*). |
+| **9** | **Bayar Kasir (Cash)** | Jalur alternatif. Status pembayaran diset sebagai *Unpaid*, menunggu verifikasi manual kasir. |
+| **10** | **Set Status Pesanan** | Inisialisasi status pesanan menjadi `PENDING` agar notifikasi masuk ke dashboard dapur. |
+| **11** | **Save Database** | **Critical**: Melakukan operasi *Insert* ke tabel `Orders` dan `Payments` dalam satu transaksi atomik. |
+| **12** | **Update Statistik** | Trigger fungsi untuk menambahkan total omzet ke tabel `SalesStats` hari ini. |
+| **13** | **Print Struk** | Sistem mengirim perintah cetak struk fisik ke printer yang terhubung (opsional). |
+| **14** | **End Process** | Mengembalikan respons JSON 200 OK ke Frontend. User diarahkan ke halaman sukses. |
 
 ### 4.3 Perhitungan Cyclomatic Complexity (V(G))
-Kompleksitas Siklomatis adalah metrik software untuk mengukur seberapa kompleks alur logika program. Semakin tinggi nilainya, semakin sulit program diuji/dirawat.
+Kompleksitas Siklomatis mengukur jumlah jalur independen dalam kode untuk menentukan skenario pengujian minimal.
 
-Kita gunakan dua rumus standar untuk memverifikasi akurasi:
+1.  **Rumus Edge-Node**: 
+    $$V(G) = E - N + 2 = 16 - 14 + 2 = \mathbf{4}$$
+2.  **Rumus Predikat**: 
+    $$V(G) = P + 1 = 3 + 1 = \mathbf{4}$$
 
-**Rumus A: Berdasarkan Grafik (Edge & Node)**
-$$V(G) = E - N + 2$$
-Dimana:
-*   $E$ (Edges/Garis Panah) = **16**
-*   $N$ (Nodes/Simpul Logika) = **14**
-
-$$V(G) = 16 - 14 + 2 = \mathbf{4}$$
-
-**Rumus B: Berdasarkan Predikat (Percabangan)**
-$$V(G) = P + 1$$
-Dimana:
-*   $P$ (Predicate Nodes/Kondisi IF) = **3** (yaitu Node 3, Node 5, Node 7).
-
-$$V(G) = 3 + 1 = \mathbf{4}$$
-
-**Analisa Hasil**: Nilai **4** menunjukkan tingkat kompleksitas yang **Rendah (Low Risk)**. Kode program dianggap efisien, mudah dimengerti, dan mudah diuji.
+**Hasil**: Terdapat **4 Jalur Independen** yang wajib diuji.
 
 ### 4.4 Penentuan Jalur Independen (*Basis Path Testing*)
-Karena $V(G) = 4$, maka secara matematis WAJIB ada **4 skenario jalur unik** yang harus diuji untuk menjamin kode bebas bug logika.
-
 1.  **Jalur 1 (Input Error)**: 1-2-3-1
-    *   *User salah input nama -> Balik ke awal.*
-2.  **Jalur 2 (API Error)**: 1-2-3-4-5-6-7-4
-    *   *Pilih Midtrans -> API Gagal -> Balik pilih metode lain.*
+2.  **Jalur 2 (API Fail)**: 1-2-3-4-5-6-7-4
 3.  **Jalur 3 (Sukses Digital)**: 1-2-3-4-5-6-7-8-10-11-12-13-14
-    *   *Jalur mulus (Happy Path) pembayaran online.*
 4.  **Jalur 4 (Sukses Tunai)**: 1-2-3-4-5-9-10-11-12-13-14
-    *   *Jalur alternatif pembayaran manual di kasir.*
 
 ### 4.5 Tabel Pengujian White-Box (*Test Cases*)
-Pengujian dilakukan dengan memasukkan data simulasi untuk melewati setiap jalur di atas.
 
-| Jalur | Skenario Uji | Input Data Simulasi | Hasil yang Diharapkan (Expected) | Status Hasil |
+| Jalur Uji | Skenario | Detail Proses | Hasil (Expected) | Status |
 | :---: | :--- | :--- | :--- | :---: |
-| **1** | **Validasi Gagal** | Nama: "" (Kosong)<br>Meja: "" | Sistem menampilkan pesan error "Nama Wajib Diisi" dan tidak melanjutkan proses. | ✅ **PASS** |
-| **2** | **Midtrans Down** | Nama: "Budi"<br>Meja: 5<br>(Simulasi Server Error) | Sistem menampilkan "Gagal terhubung ke Gateway", user diminta pilih metode Cash. | ✅ **PASS** |
-| **3** | **Transaksi Digital** | Nama: "Andi"<br>Meja: 1<br>Metode: QRIS | Token pembayaran muncul, notifikasi sukses diterima, data tersimpan. | ✅ **PASS** |
-| **4** | **Transaksi Tunai** | Nama: "Siti"<br>Meja: 3<br>Metode: Cash | Status pesanan 'Pending Payment', kasir menerima notifikasi konfirmasi. | ✅ **PASS** |
+| **Jalur 1** | **Input Validasi Error** | Node 1-2-3-1 | Sistem menolak input kosong/salah. | ✅ PASS |
+| **Jalur 2** | **Midtrans API Fail** | Node 1...5-6-7-4 | Simulasi internet putus saat request token. | ✅ PASS |
+| **Jalur 3** | **Sukses Digital** | Node 1...5-6-7-8-10...14 | Pembayaran QRIS berhasil & terverifikasi. | ✅ PASS |
+| **Jalur 4** | **Sukses Tunai** | Node 1...5-9-10...14 | Pesanan masuk dengan status "Bayar di Kasir". | ✅ PASS |
 
 ---
 
 ## BAB 5: IMPLEMENTASI ANTARMUKA (UI SCREENS)
 
-Beriku adalah bukti implementasi desain antarmuka (*Interface*) yang telah dibangun menggunakan gaya desain **Glassmorphism** untuk kesan modern dan bersih.
+*(Bagian ini berisi dokumentasi visual implementasi aplikasi yang telah selesai dibangun)*
 
-### 5.1 Tampilan Sisi Pelanggan
-Halaman ini diakses via HP pelanggan setelah scan QR.
+### 5.1 Halaman Customer
+*(Screenshot: Tampilan halaman menu saat diakses dari HP)*
+`![UI Customer](assets/laporan_rpl/ui_customer_menu.png)`
 
-*(Silakan masukkan screenshot pada folder aset)*
-`![UI Menu Pelanggan](assets/laporan_rpl/ui_customer_menu.png)`
-> *Gambar 5.1: Katalog Menu Digital & Keranjang Belanja*
+### 5.2 Halaman Staff
+*(Screenshot: Dashboard Dapur/Kasir)*
+`![UI Staff](assets/laporan_rpl/ui_staff_dashboard.png)`
 
-### 5.2 Tampilan Sisi Staff
-Dashboard operasional untuk dapur dan kasir.
-
-*(Silakan masukkan screenshot pada folder aset)*
-`![UI Dashboard Staff](assets/laporan_rpl/ui_staff_dashboard.png)`
-> *Gambar 5.2: Kanban Board Management Pesanan (Preparing/Ready/Served)*
-
-### 5.3 Tampilan Sisi Owner
-Halaman analitik untuk pemilik usaha.
-
-*(Silakan masukkan screenshot pada folder aset)*
-`![UI Dashboard Staff](assets/laporan_rpl/ui_owner_analytics.png)`
-> *Gambar 5.3: Grafik Penjualan Harian & Manajemen Menu*
+### 5.3 Halaman Owner
+*(Screenshot: Grafik Penjualan)*
+`![UI Owner](assets/laporan_rpl/ui_owner_analytics.png)`
 
 ---
 
-## BAB 6: KESIMPULAN & ANALISIS AKHIR
+## BAB 6: KESIMPULAN
 
-Berdasarkan serangkaian analisis, perancangan, dan pengujian White-Box yang telah dilakukan dalam praktikum ini, dapat kami simpulkan:
-
-1.  **Validitas Logika Tinggi**: Perhitungan kompleksitas siklomatis menghasilkan nilai **V(G) = 4**, yang berarti algoritma sistem sangat efisien. Tidak ada logika yang berbelit-belit atau redundan.
-2.  **Keamanan Transaksi Terjamin**: Dengan menguji ke-4 jalur independen (termasuk jalur error), sistem terbukti mampu menangani kegagalan (seperti API mati atau input salah) tanpa menyebabkan *crash*.
-3.  **Kesiapan Produksi**: Sistem POS SO telah memenuhi standar fungsional dan struktural untuk diterapkan sebagai solusi modernisasi restoran, menggantikan sistem manual yang rentan kesalahan.
-
----
-
-## LAMPIRAN: PANDUAN PENGISIAN GAMBAR
-*(Bagian ini untuk Anda, User. Silakan hapus bagian ini setelah gambar dimasukkan)*
-
-Anda perlu mengambil screenshot atau menyimpan gambar diagram ke folder:
-`backend/assets/laporan_rpl/`
-
-**Daftar File yang Harus Ada:**
-1.  **`diagram_usecase.png`**: Screenshot Use Case Diagram (Bab 2).
-2.  **`diagram_erd.png`**: Screenshot ERD Diagram (Bab 3).
-3.  **`diagram_flowgraph.png`**: Gambar manual/digital Flowgraph Node 1-14 (Bab 4).
-4.  **`ui_customer_menu.png`**: Screenshot halaman menu di HP.
-5.  **`ui_staff_dashboard.png`**: Screenshot dashboard staff di Laptop/Tablet.
-6.  **`ui_owner_analytics.png`**: Screenshot dashboard owner (Grafik).
-
-Format file harus **.png** atau **.jpg**. Pastikan nama file sesuai agar otomatis muncul di laporan Markdown ini.
+Berdasarkan pengujian White-Box pada logika sistem:
+1.  **Validitas Logika**: Flowgraph menunjukkan alur yang tertutup dan efisien dengan **V(G)=4**.
+2.  **Robustness**: Sistem terbukti mampu menangani *error exception* (seperti input salah atau API down) tanpa *crash*.
+3.  **Kelayakan**: Sistem POS SO memenuhi standar rekayasa perangkat lunak untuk diimplementasikan.

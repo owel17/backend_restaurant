@@ -17,6 +17,10 @@ const start = async () => {
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
     console.log('Database models synced.');
 
+    // Initialize default categories AFTER tables are created
+    const { initDefaultCategories } = require('./controllers/categoryController');
+    await initDefaultCategories();
+
     app.listen(PORT, () => {
       console.log(`API running on port ${PORT}`);
       console.log(`Local: http://localhost:${PORT}`);

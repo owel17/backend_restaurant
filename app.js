@@ -23,8 +23,8 @@ console.log('Loading ownerRoutes...');
 const ownerRoutes = require('./routes/ownerRoutes');
 const { initDefaultCategories } = require('./controllers/categoryController');
 
-// Initialize default categories
-initDefaultCategories().catch(console.error);
+// Initialize default categories - REMOVED: Moved to server.js to wait for DB Sync
+// initDefaultCategories().catch(console.error);
 
 console.log('All routes loaded successfully.');
 

@@ -16,7 +16,12 @@ const sequelize = new Sequelize(databaseUrl, {
             require: true,
             rejectUnauthorized: false
         }
-    } : {}
+    } : {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false
+        }
+    }
 });
 
 module.exports = sequelize;
